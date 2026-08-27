@@ -1,6 +1,9 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
-import { createDocument } from "../services/document.service";
+import {
+    createDocument,
+    getUserDocuments,
+} from "../services/document.service";
 
 export const create = async (
     req: AuthRequest,
@@ -46,6 +49,35 @@ export const create = async (
         res.status(500).json({
             success: false,
             message: error.message || "Failed to create document",
+        });
+    }
+};
+export const getAll = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+            return;
+        }
+
+        const documents = await getUserDocuments(userId);
+
+        res.status(200).json({
+            success: true,
+            documents,
+        });
+
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message || "Failed to fetch documents",
         });
     }
 };

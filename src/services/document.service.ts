@@ -20,3 +20,15 @@ export const createDocument = async ({
 
     return document;
 };
+export const getUserDocuments = async (userId: string) => {
+    const documents = await Document.find({
+        $or: [
+            { owner: userId },
+            { collaborators: userId },
+        ],
+    })
+        .sort({ updatedAt: -1 })
+        .select("-content");
+
+    return documents;
+};

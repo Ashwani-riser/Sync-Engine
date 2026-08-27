@@ -3,7 +3,9 @@ import { AuthRequest } from "../middleware/auth.middleware";
 import {
     createDocument,
     getUserDocuments,
+    getDocumentById,
 } from "../services/document.service";
+
 
 export const create = async (
     req: AuthRequest,
@@ -78,6 +80,50 @@ export const getAll = async (
         res.status(500).json({
             success: false,
             message: error.message || "Failed to fetch documents",
+        });
+    }
+};
+
+
+export const getById = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const documentId = req.params.documentId as string;
+
+        if (!documentId) {
+            res.status(400).json({
+                success: false,
+                message: "Document ID is required",
+            });
+            return;
+        }
+
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+            return;
+        }
+
+        const document = await getDocumentById(
+            documentId,
+            userId
+        );
+
+        res.status(200).json({
+            success: true,
+            document,
+        });
+
+    } catch (error: any) {
+        res.status(404).json({
+            success: false,
+            message: error.message,
         });
     }
 };

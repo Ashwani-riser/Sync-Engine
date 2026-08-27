@@ -32,3 +32,25 @@ export const getUserDocuments = async (userId: string) => {
 
     return documents;
 };
+
+//owner or collaborator hi acces kar payga
+export const getDocumentById = async (
+    documentId: string,
+    userId: string
+) => {
+    const document = await Document.findOne({
+        _id: documentId,
+        $or: [
+            { owner: userId },
+            { collaborators: userId },
+        ],
+    });
+
+    if (!document) {
+        throw new Error(
+            "Document not found or you don't have access"
+        );
+    }
+
+    return document;
+};

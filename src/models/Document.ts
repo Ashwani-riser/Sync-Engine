@@ -4,9 +4,12 @@ export interface IDocument extends MongooseDocument {
     title: string;
     content: string;
     owner: mongoose.Types.ObjectId;
-    collaborators: mongoose.Types.ObjectId[];
-}
 
+    collaborators: {
+        user: mongoose.Types.ObjectId;
+        role: "editor" | "viewer";
+    }[];
+}
 const documentSchema = new Schema<IDocument>(
     {
         title: {
@@ -27,10 +30,18 @@ const documentSchema = new Schema<IDocument>(
         },
 
         collaborators: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: "User",
-            },
+          {
+             user: {
+                  type: Schema.Types.ObjectId,
+                  ref: "User",
+                  required: true,
+             },
+              role: {
+                   type: String,
+                   enum: ["editor", "viewer"],
+                   default: "editor",
+               },
+           },
         ],
     },
     {

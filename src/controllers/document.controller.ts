@@ -4,8 +4,8 @@ import {
     createDocument,
     getUserDocuments,
     getDocumentById,
+    addCollaborator,
 } from "../services/document.service";
-
 
 export const create = async (
     req: AuthRequest,
@@ -124,6 +124,65 @@ export const getById = async (
         res.status(404).json({
             success: false,
             message: error.message,
+        });
+    }
+};
+
+export const addCollaboratorToDocument = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const documentId = req.params.documentId as string;
+
+        const { email, role } = req.body;
+
+        // Logged-in user
+        const ownerId = req.user?.userId;
+
+        if (!ownerId) {
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+            return;
+        }
+
+        // Validate input
+        if (!email || !role) {
+            res.status(400).json({
+                success: false,
+                message: "Email and role are required",
+            });
+            return;
+        }
+
+        // Validate role
+        if (role !== "editor" && role !== "viewer") {
+            res.status(400).json({
+                success: false,
+                message: "Role must be editor or viewer",
+            });
+            return;
+        }
+
+        const document = await addCollaborator(
+            documentId,
+            ownerId,
+            email,
+            role
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Collaborator added successfully",
+            document,
+        });
+
+    } catch (error: any) {
+        res.status(400).json({
+            success: false,
+            message: error.message || "Failed to add collaborator",
         });
     }
 };

@@ -1,5 +1,6 @@
 import Document from "../models/Document";
 import User from "../models/user";
+import { getUserRole } from "./permission.service";
 
 interface CreateDocumentInput {
     title: string;
@@ -113,6 +114,46 @@ export const addCollaborator = async (
         user: user._id,
         role,
     });
+
+    await document.save();
+
+    return document;
+};
+
+export const updateDocument = async (
+    documentId: string,
+    userId: string,
+    title?: string,
+    content?: string
+) => {
+
+    const role = await getUserRole( //permission.service ko call daga
+        documentId,
+        userId
+    );
+
+    // Only owner and editor can edit
+    if (role !== "owner" && role !== "editor") {
+        throw new Error(
+            "You don't have permission to edit this document"
+        );
+    }
+
+    const document = await Document.findById(
+        documentId
+    );
+
+    if (!document) {
+        throw new Error("Document not found");
+    }
+
+    if (title !== undefined) {
+        document.title = title;
+    }
+
+    if (content !== undefined) {
+        document.content = content;
+    }
 
     await document.save();
 

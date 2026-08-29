@@ -24,7 +24,8 @@ export const create = async (
         }
 
         // Get logged-in user ID from JWT middleware
-        const ownerId = req.user?.userId;
+        const ownerId = req.user?.userId;// jo doc create karaga wo owner ban jayga
+        
 
         if (!ownerId) {
             res.status(401).json({

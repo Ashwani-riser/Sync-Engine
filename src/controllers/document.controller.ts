@@ -6,6 +6,7 @@ import {
     getDocumentById,
     addCollaborator,
     updateDocument,
+    deleteDocument,
 } from "../services/document.service";
 
 export const create = async (
@@ -227,6 +228,46 @@ export const update = async (
             success: true,
             message: "Document updated successfully",
             document,
+        });
+
+    } catch (error: any) {
+        res.status(403).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+
+
+
+//delete controller
+
+export const remove = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const documentId = req.params.documentId as string;
+
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+            return;
+        }
+
+        await deleteDocument(
+            documentId,
+            userId
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Document deleted successfully",
         });
 
     } catch (error: any) {

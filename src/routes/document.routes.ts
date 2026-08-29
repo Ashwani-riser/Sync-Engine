@@ -5,6 +5,7 @@ import {
     getById,
     addCollaboratorToDocument,
     update,
+    remove,
 } from "../controllers/document.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -27,5 +28,11 @@ router.patch(
     "/:documentId",
     authenticate,
     update
+);
+
+router.delete(
+    "/:documentId",
+    authenticate,
+    remove
 );
 export default router;

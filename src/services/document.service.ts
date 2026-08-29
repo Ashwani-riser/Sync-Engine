@@ -159,3 +159,28 @@ export const updateDocument = async (
 
     return document;
 };
+
+// DELETE DOCUMENT
+export const deleteDocument = async (
+    documentId: string,
+    userId: string
+) => {
+
+    // Only owner can delete
+    const document = await Document.findOne({
+        _id: documentId,
+        owner: userId,
+    });
+
+    if (!document) {
+        throw new Error(
+            "Document not found or you are not the owner"
+        );
+    }
+
+    await Document.deleteOne({
+        _id: documentId,
+    });
+
+    return document;
+};

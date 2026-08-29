@@ -130,7 +130,7 @@ export const updateDocument = async (
     const role = await getUserRole( //permission.service ko call daga
         documentId,
         userId
-    );
+    );// permission.service userid dhka ga agr wo owner ya editor h to usko edit krne ka permission h otherwise nhi h
 
     // Only owner and editor can edit
     if (role !== "owner" && role !== "editor") {

@@ -5,6 +5,7 @@ import {
     getUserDocuments,
     getDocumentById,
     addCollaborator,
+    updateDocument,
 } from "../services/document.service";
 
 export const create = async (
@@ -25,7 +26,7 @@ export const create = async (
 
         // Get logged-in user ID from JWT middleware
         const ownerId = req.user?.userId;// jo doc create karaga wo owner ban jayga
-        
+
 
         if (!ownerId) {
             res.status(401).json({
@@ -184,6 +185,54 @@ export const addCollaboratorToDocument = async (
         res.status(400).json({
             success: false,
             message: error.message || "Failed to add collaborator",
+        });
+    }
+};
+
+export const update = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const documentId = req.params.documentId as string;
+
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+            return;
+        }
+
+        const { title, content } = req.body;
+
+        if (title === undefined && content === undefined) {
+            res.status(400).json({
+                success: false,
+                message: "Nothing to update",
+            });
+            return;
+        }
+
+        const document = await updateDocument(
+            documentId,
+            userId,
+            title,
+            content
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Document updated successfully",
+            document,
+        });
+
+    } catch (error: any) {
+        res.status(403).json({
+            success: false,
+            message: error.message,
         });
     }
 };

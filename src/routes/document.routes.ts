@@ -4,6 +4,7 @@ import {
     getAll,
     getById,
     addCollaboratorToDocument,
+    update,
 } from "../controllers/document.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -22,5 +23,9 @@ router.post(
     authenticate,
     addCollaboratorToDocument
 );
-
+router.patch(
+    "/:documentId",
+    authenticate,
+    update
+);
 export default router;

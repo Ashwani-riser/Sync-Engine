@@ -1,30 +1,49 @@
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
+import { AuthSocket } from "./socket.auth";
+import { getUserRole } from "../services/permission.service";
 
 export const registerDocumentSocket = (
     io: Server,
-    socket: Socket
+    socket: AuthSocket
 ) => {
 
-    socket.on("join-document", async (documentId: string) => {
-        try {
-            const room = `document:${documentId}`;
+    socket.on("document-update", async (data) => {
+    try {
+        const userId = socket.user?.userId;
 
-            await socket.join(room);
-
-            console.log(
-                `👤 ${socket.id} joined ${room}`
-            );
-
-            socket.emit("document-joined", {
-                documentId,
-                message: "Joined document successfully",
-            });
-
-        } catch (error) {
+        if (!userId) {
             socket.emit("socket-error", {
-                message: "Failed to join document",
+                message: "Unauthorized",
             });
+            return;
         }
-    });
 
+        const { documentId, title, content } = data;
+
+        const role = await getUserRole(documentId, userId);
+
+        if (role !== "owner" && role !== "editor") {
+            socket.emit("socket-error", {
+                message: "You don't have permission to edit this document",
+            });
+            return;
+        }
+
+        const room = `document:${documentId}`;
+
+        io.to(room).emit("document-updated", {
+            documentId,
+            title,
+            content,
+            updatedBy: userId,
+        });
+
+    } catch (error) {
+        console.error("Document update error:", error);
+
+        socket.emit("socket-error", {
+            message: "Failed to update document",
+        });
+    }
+  });
 };

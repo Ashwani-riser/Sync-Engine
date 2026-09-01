@@ -40,7 +40,7 @@ export const authenticateSocket = (
             );
         }
 
-        const token = getTokenFromCookie(cookieHeader);
+        const token = getTokenFromCookie(cookieHeader); //JWT nikalta hai.
 
         if (!token) {
             return next(

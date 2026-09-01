@@ -3,6 +3,12 @@ import http from "http";
 import app from "./app";
 import connectDB from "./config/db";
 import { Server } from "socket.io";
+
+import {
+    authenticateSocket,
+    AuthSocket,
+} from "./sockets/socket.auth";
+
 import { registerDocumentSocket } from "./sockets/document.socket";
 
 const PORT = process.env.PORT || 8000;
@@ -19,20 +25,37 @@ const startServer = async () => {
         },
     });
 
+    // Authenticate every socket connection
+    io.use(authenticateSocket);
+
     io.on("connection", (socket) => {
-        console.log("🔌 Client connected:", socket.id);
+        console.log(
+            "🔌 Client connected:",
+            socket.id
+        );
 
         // Register document socket events
-        registerDocumentSocket(io, socket);
+        registerDocumentSocket(
+            io,
+            socket as AuthSocket
+        );
 
         socket.on("disconnect", () => {
-            console.log("🔌 Client disconnected:", socket.id);
+            console.log(
+                "🔌 Client disconnected:",
+                socket.id
+            );
         });
     });
 
     server.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`🔌 Socket.IO running on port ${PORT}`);
+        console.log(
+            `🚀 Server running on port ${PORT}`
+        );
+
+        console.log(
+            `🔌 Socket.IO running on port ${PORT}`
+        );
     });
 };
 

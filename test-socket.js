@@ -133,7 +133,7 @@ async function start() {
 
     } catch (error) {
 
-        console.error("❌ Test failed:", error.message);
+        console.error("❌ Test failed:", error);
 
     }
 }

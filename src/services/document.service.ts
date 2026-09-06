@@ -124,7 +124,8 @@ export const updateDocument = async (
     documentId: string,
     userId: string,
     title?: string,
-    content?: string
+    content?: string,
+    expectedVersion?: number
 ) => {
 
     const role = await getUserRole( //permission.service ko call daga
@@ -147,6 +148,17 @@ export const updateDocument = async (
         throw new Error("Document not found");
     }
 
+    // Version conflict check
+     if (
+         expectedVersion !== undefined &&
+         document.version !== expectedVersion
+        ){
+          throw new Error(
+          `Version conflict. Current version is ${document.version}`
+        );
+    }
+
+
     if (title !== undefined) {
         document.title = title;
     }
@@ -154,6 +166,9 @@ export const updateDocument = async (
     if (content !== undefined) {
         document.content = content;
     }
+
+    // Increase version after successful update
+      document.version += 1;
 
     await document.save();
 

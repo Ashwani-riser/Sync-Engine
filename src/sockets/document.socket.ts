@@ -82,6 +82,7 @@ export const registerDocumentSocket = (
                 documentId,
                 title,
                 content,
+                expectedVersion,
             } = data;
 
             // Validate document ID
@@ -110,13 +111,14 @@ export const registerDocumentSocket = (
                 return;
             }
 
-            //save update to mongodb
+            //save update to mongodb,service ko call kiya
 
             const updatedDocument = await updateDocument(
                 documentId,
                 user.userId,
                 title,
-                content
+                content,
+                expectedVersion
             );
 
             //Broadcast to Room
@@ -127,6 +129,7 @@ export const registerDocumentSocket = (
                 documentId,
                 title: updatedDocument.title,
                 content: updatedDocument.content,
+                version: updatedDocument.version,
                 updatedBy: user.userId,
             });
 

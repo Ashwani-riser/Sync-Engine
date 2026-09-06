@@ -3,6 +3,7 @@ import mongoose, { Document as MongooseDocument, Schema } from "mongoose";
 export interface IDocument extends MongooseDocument {
     title: string;
     content: string;
+    version: number;
     owner: mongoose.Types.ObjectId;
 
     collaborators: {
@@ -21,6 +22,10 @@ const documentSchema = new Schema<IDocument>(
         content: {
             type: String,
             default: "",
+        },
+        version: {
+           type: Number,
+           default: 0,
         },
 
         owner: {

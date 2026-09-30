@@ -98,16 +98,17 @@ async function start() {
         });
 
 
-        socket.on("document-joined", (data) => {
+    socket.on("document-joined", (data) => {
+    console.log("Client B joined document:");
+    console.log(data);
 
-            console.log("📄 Client B joined document:");
-
-            console.log(data);
-
-            console.log(
-                "\n👂 Client B is now listening for updates...\n"
-            );
-        });
+    // socket.emit("document-update", {
+    //     documentId: documentId,
+    //     title: "Socket Test",
+    //     content: "Update from Client B",
+    //     expectedVersion: 8,
+    // });
+});
 
 
         socket.on("document-updated", (data) => {

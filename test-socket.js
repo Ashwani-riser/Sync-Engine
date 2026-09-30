@@ -7,6 +7,8 @@ const PORT = 8000;
 const email = "ashwani@example.com";
 const password = "123456";
 
+const documentId = "6a908fc62e5d2ed7a2db57a7";
+
 function login() {
     return new Promise((resolve, reject) => {
 
@@ -67,17 +69,15 @@ function login() {
     });
 }
 
-
 async function start() {
 
     try {
 
-        console.log("🔐 Logging in...");
+        console.log("Logging in...");
 
         const cookie = await login();
 
-        console.log("🍪 Cookie received");
-
+        console.log("Cookie received");
 
         const socket = io("http://localhost:8000", {
             extraHeaders: {
@@ -85,58 +85,84 @@ async function start() {
             },
         });
 
-
         socket.on("connect", () => {
 
-            console.log("✅ Socket connected:", socket.id);
+            console.log("Socket connected:", socket.id);
+
+            console.log("Joining document...");
 
             socket.emit(
                 "join-document",
-                "6a908fc62e5d2ed7a2db57a7"
+                documentId
             );
         });
 
+    //     socket.on("document-joined", (data) => {
 
-        socket.on("document-joined", (data) => {
+    //          console.log("Document joined:");
+    //          console.log(data);
 
-            console.log("📄 Document joined:");
-            console.log(data);
+    //    socket.emit("document-update", {
+    //          documentId: documentId,
+    //          title: "Socket Test",
+    //          content: "Hello from Client A",
+    //        });
+    //   });
 
+   socket.on("document-joined", (data) => {
+    console.log("Document joined:");
+    console.log(data);
 
-            socket.emit("document-update", {
-                documentId: "6a908fc62e5d2ed7a2db57a7",
-                title: "Socket Test",
-                content: "Hello from Socket.IO!",
-            });
-        });
-
+    // socket.emit("document-update", {
+    //     documentId: documentId,
+    //     title: "Socket Test",
+    //     content: "Update from Client A",
+    //     expectedVersion: 8,
+    // });
+});
 
         socket.on("document-updated", (data) => {
 
-            console.log("📝 Document updated:");
+            console.log("");
+            console.log("REAL-TIME UPDATE RECEIVED");
+            console.log("Document updated:");
             console.log(data);
+            console.log("");
         });
 
+        socket.on("version-conflict", (data) => {
+
+            console.log("");
+            console.log("VERSION CONFLICT");
+            console.log(data);
+            console.log("");
+        });
 
         socket.on("socket-error", (data) => {
 
-            console.log("❌ Socket error:");
+            console.log("");
+            console.log("Socket error:");
             console.log(data);
+            console.log("");
         });
-
 
         socket.on("connect_error", (error) => {
 
-            console.log("❌ Connection error:");
+            console.log("");
+            console.log("Connection error:");
             console.log(error.message);
+            console.log("");
+        });
+
+        socket.on("disconnect", (reason) => {
+
+            console.log("Socket disconnected:", reason);
         });
 
     } catch (error) {
 
-        console.error("❌ Test failed:", error);
-
+        console.error("Test failed:", error);
     }
 }
-
 
 start();

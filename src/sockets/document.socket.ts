@@ -67,88 +67,94 @@ export const registerDocumentSocket = (
    //UPDATE DOCUMENT
 
     socket.on("document-update", async (data) => {
-        try {
-            const user = socket.user;
+    let documentId: string | undefined;
 
-            // Check authentication
-            if (!user) {
-                socket.emit("socket-error", {
-                    message: "Unauthorized",
-                });
-                return;
-            }
+    try {
+        const user = socket.user;
 
-            const {
-                documentId,
-                title,
-                content,
-                expectedVersion,
-            } = data;
-
-            // Validate document ID
-            if (!documentId) {
-                socket.emit("socket-error", {
-                    message: "Document ID is required",
-                });
-                return;
-            }
-
-            // Check user's role
-            const role = await getUserRole(
-                documentId,
-                user.userId
-            );
-
-            // Only owner and editor can edit
-            if (
-                role !== "owner" &&
-                role !== "editor"
-            ) {
-                socket.emit("socket-error", {
-                    message:
-                        "You don't have permission to edit this document",
-                });
-                return;
-            }
-
-            //save update to mongodb,service ko call kiya
-
-            const updatedDocument = await updateDocument(
-                documentId,
-                user.userId,
-                title,
-                content,
-                expectedVersion
-            );
-
-            //Broadcast to Room
-
-            const room = `document:${documentId}`;
-
-            io.to(room).emit("document-updated", {
-                documentId,
-                title: updatedDocument.title,
-                content: updatedDocument.content,
-                version: updatedDocument.version,
-                updatedBy: user.userId,
-            });
-
-            console.log(
-                `📝 ${user.email} updated document ${documentId}`
-            );
-
-        } catch (error) {
-            console.error(
-                "Document update error:",
-                error
-            );
-
+        if (!user) {
             socket.emit("socket-error", {
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : "Failed to update document",
+                message: "Unauthorized",
             });
+            return;
         }
-    });
+
+        const {
+            documentId: incomingDocumentId,
+            title,
+            content,
+            expectedVersion,
+        } = data;
+
+        documentId = incomingDocumentId;
+
+        if (!documentId) {
+            socket.emit("socket-error", {
+                message: "Document ID is required",
+            });
+            return;
+        }
+
+        const role = await getUserRole(
+            documentId,
+            user.userId
+        );
+
+        if (role !== "owner" && role !== "editor") {
+            socket.emit("socket-error", {
+                message: "You don't have permission to edit this document",
+            });
+            return;
+        }
+
+        const updatedDocument = await updateDocument(
+            documentId,
+            user.userId,
+            title,
+            content,
+            expectedVersion
+        );
+
+        const room = `document:${documentId}`;
+
+        io.to(room).emit("document-updated", {
+            documentId,
+            title: updatedDocument.title,
+            content: updatedDocument.content,
+            version: updatedDocument.version,
+            updatedBy: user.userId,
+        });
+
+        console.log(
+            `${user.email} updated document ${documentId} → version ${updatedDocument.version}`
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Document update error:",
+            error
+        );
+
+        if (
+            error instanceof Error &&
+            (error as any).code === "VERSION_CONFLICT"
+        ) {
+            socket.emit("version-conflict", {
+                documentId,
+                message: error.message,
+                document: (error as any).document,
+            });
+
+            return;
+        }
+
+        socket.emit("socket-error", {
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to update document",
+        });
+    }
+  });
 };

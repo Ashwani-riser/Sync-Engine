@@ -150,12 +150,18 @@ export const updateDocument = async (
 
     // Version conflict check
      if (
-         expectedVersion !== undefined &&
-         document.version !== expectedVersion
-        ){
-          throw new Error(
-          `Version conflict. Current version is ${document.version}`
-        );
+    expectedVersion !== undefined &&
+    document.version !== expectedVersion
+      ) {
+    const error = new Error("Document has been modified by another user");
+    (error as any).code = "VERSION_CONFLICT";
+    (error as any).document = {
+      title: document.title,
+      content: document.content,
+      version: document.version,
+    };
+
+    throw error;
     }
 
 
@@ -168,7 +174,7 @@ export const updateDocument = async (
     }
 
     // Increase version after successful update
-      document.version += 1;
+  document.version += 1;
 
     await document.save();
 

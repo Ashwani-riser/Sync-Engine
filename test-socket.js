@@ -120,6 +120,12 @@ async function start() {
     //     expectedVersion: 8,
     // });
 });
+socket.on("presence-updated", (data) => {
+    console.log("");
+    console.log("👥 PRESENCE UPDATED:");
+    console.log(data);
+    console.log("");
+});
 
         socket.on("document-updated", (data) => {
 

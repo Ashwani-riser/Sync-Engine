@@ -2,11 +2,19 @@ import { Server } from "socket.io";
 import { AuthSocket } from "./socket.auth";
 import { getUserRole } from "../services/permission.service";
 import { updateDocument } from "../services/document.service";
+import {
+    addUserToDocument,
+    removeUserFromDocument,
+    broadcastPresence,
+} from "./presence";
 
 export const registerDocumentSocket = (
     io: Server,
     socket: AuthSocket
 ) => {
+
+      // Track which document this socket joined
+   // let joinedDocumentId: string | null = null;
 
     // JOIN DOCUMENT ROOM
     socket.on("join-document", async (documentId: string) => {
@@ -40,6 +48,10 @@ export const registerDocumentSocket = (
 
             // Join room
             await socket.join(room);
+            socket.joinedDocumentId = documentId;
+
+            addUserToDocument(documentId, user.userId);
+            broadcastPresence(io, documentId);
 
             console.log(
                 `👤 ${user.email} joined ${room} as ${role}`
@@ -94,12 +106,12 @@ export const registerDocumentSocket = (
             });
             return;
         }
-
+        // Check user's role
         const role = await getUserRole(
             documentId,
             user.userId
         );
-
+        // Only owner/editor can edit
         if (role !== "owner" && role !== "editor") {
             socket.emit("socket-error", {
                 message: "You don't have permission to edit this document",
@@ -157,4 +169,39 @@ export const registerDocumentSocket = (
         });
     }
   });
+
+  // DISCONNECT
+  socket.on("disconnect", () => {
+    console.log(
+        "🔴 SOCKET DISCONNECTED:",
+        socket.id
+    );
+
+    if (
+        !socket.joinedDocumentId ||
+        !socket.user
+    ) {
+        console.log(
+            "No document/user to clean"
+        );
+        return;
+    }
+
+    const documentId =
+        socket.joinedDocumentId;
+
+    removeUserFromDocument(
+        documentId,
+        socket.user.userId
+    );
+
+    broadcastPresence(
+        io,
+        documentId
+    );
+
+    console.log(
+        `👋 ${socket.user.email} left document ${documentId}`
+    );
+});
 };

@@ -11,6 +11,7 @@ export interface AuthSocket extends Socket {
         userId: string;
         email: string;
     };
+    joinedDocumentId?: string;
 }
 
 const getTokenFromCookie = (cookieHeader: string) => {

@@ -6,6 +6,7 @@ import {
     addCollaboratorToDocument,
     update,
     remove,
+    getHistory,
 } from "../controllers/document.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -15,6 +16,12 @@ const router = Router();
 router.post("/", authenticate, create);
 
 router.get("/", authenticate, getAll);
+
+router.get(
+    "/:documentId/history",
+    authenticate,
+    getHistory
+);
 
 router.get("/:documentId", authenticate, getById);
 
@@ -35,4 +42,5 @@ router.delete(
     authenticate,
     remove
 );
+
 export default router;

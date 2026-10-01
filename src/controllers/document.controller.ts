@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 import {
     createDocument,
@@ -8,6 +8,7 @@ import {
     updateDocument,
     deleteDocument,
 } from "../services/document.service";
+import { getDocumentHistory } from "../services/document-history.service";
 
 export const create = async (
     req: AuthRequest,
@@ -274,6 +275,33 @@ export const remove = async (
         res.status(403).json({
             success: false,
             message: error.message,
+        });
+    }
+};
+export const getHistory = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const documentId = req.params.documentId as string;
+        const userId = req.user!.userId;
+
+        const history = await getDocumentHistory(
+            documentId,
+            userId
+        );
+
+        return res.status(200).json({
+            success: true,
+            history,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to fetch document history",
         });
     }
 };

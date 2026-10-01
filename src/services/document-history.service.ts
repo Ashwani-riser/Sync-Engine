@@ -1,3 +1,4 @@
+import Document from "../models/Document";
 import DocumentHistory from "../models/DocumentHistory";
 
 export const createDocumentHistory = async ({
@@ -23,4 +24,34 @@ export const createDocumentHistory = async ({
         content,
         version,
     });
+};
+
+export const getDocumentHistory = async (
+    documentId: string,
+    userId: string
+) => {
+    const document = await Document.findById(documentId);
+
+    if (!document) {
+        throw new Error("Document not found");
+    }
+
+    const isOwner = document.owner.toString() === userId;
+
+    const isCollaborator = document.collaborators.some(
+        (collaborator) =>
+            collaborator.user.toString() === userId
+    );
+
+    if (!isOwner && !isCollaborator) {
+        throw new Error(
+            "You don't have permission to view this document"
+        );
+    }
+
+    return await DocumentHistory.find({
+        document: documentId,
+    })
+        .populate("user", "name email")
+        .sort({ createdAt: -1 });
 };

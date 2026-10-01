@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
 import documentRoutes from "./routes/document.routes";
+import aiRoutes from "./routes/ai.routes";
 
 const app = express();
 
@@ -19,4 +20,5 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/ai", aiRoutes);
 export default app;

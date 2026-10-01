@@ -1,6 +1,7 @@
 import Document from "../models/Document";
 import User from "../models/user";
 import { getUserRole } from "./permission.service";
+import { createDocumentHistory } from "./document-history.service";
 
 interface CreateDocumentInput {
     title: string;
@@ -174,9 +175,17 @@ export const updateDocument = async (
     }
 
     // Increase version after successful update
-  document.version += 1;
-
+    document.version += 1;
     await document.save();
+
+    await createDocumentHistory({
+    documentId,
+    userId,
+    action: "updated",
+    title: document.title,
+    content: document.content,
+    version: document.version,
+  });
 
     return document;
 };

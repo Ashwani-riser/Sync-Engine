@@ -4,6 +4,18 @@ export interface IUser extends Document {
     name: string;
     email: string;
     password: string;
+
+    // Google authentication
+    googleId?: string;
+    authProvider: "local" | "google";
+
+    // Email verification
+    emailVerified: boolean;
+    emailVerificationToken?: string;
+    emailVerificationExpires?: Date;
+
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const userSchema = new Schema<IUser>(
@@ -27,12 +39,39 @@ const userSchema = new Schema<IUser>(
             required: true,
             minlength: 6,
         },
+
+        // ================= GOOGLE =================
+
+        googleId: {
+            type: String,
+            unique: true,
+            sparse: true,
+        },
+
+        authProvider: {
+            type: String,
+            enum: ["local", "google"],
+            default: "local",
+        },
+
+        // ================= EMAIL VERIFICATION =================
+
+        emailVerified: {
+            type: Boolean,
+            default: false,
+        },
+
+        emailVerificationToken: {
+            type: String,
+        },
+
+        emailVerificationExpires: {
+            type: Date,
+        },
     },
     {
         timestamps: true,
     }
 );
 
-const User = mongoose.model<IUser>("User", userSchema);
-
-export default User;
+export default mongoose.model<IUser>("User", userSchema);

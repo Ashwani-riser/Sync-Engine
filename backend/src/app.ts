@@ -1,32 +1,79 @@
 import express from "express";
+
 import cors from "cors";
+
 import cookieParser from "cookie-parser";
 
+
 import authRoutes from "./routes/auth.routes";
+
 import documentRoutes from "./routes/document.routes";
+
 import aiRoutes from "./routes/ai.routes";
 
-const app = express();
+
+const app =
+    express();
+
 
 app.use(
-  cors({
-    origin: "http://localhost:3000",
-    credentials: true,
-  })
+    cors({
+        origin:
+            "http://localhost:3000",
+
+        credentials: true,
+    })
 );
 
-app.use(express.json());
-app.use(cookieParser());
 
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Sync Engine is running",
-  });
-});
+app.use(
+    express.json()
+);
 
-app.use("/api/auth", authRoutes);
-app.use("/api/documents", documentRoutes);
-app.use("/api/ai", aiRoutes);
+
+app.use(
+    cookieParser()
+);
+
+
+// ==========================================
+// HEALTH
+// ==========================================
+
+app.get(
+    "/health",
+    (req, res) => {
+
+        res.status(200).json({
+            success: true,
+            message:
+                "Sync Engine is running",
+        });
+
+    }
+);
+
+
+// ==========================================
+// ROUTES
+// ==========================================
+
+app.use(
+    "/api/auth",
+    authRoutes
+);
+
+
+app.use(
+    "/api/documents",
+    documentRoutes
+);
+
+
+app.use(
+    "/api/ai",
+    aiRoutes
+);
+
 
 export default app;

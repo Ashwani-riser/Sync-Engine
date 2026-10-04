@@ -1,5 +1,14 @@
-import { Request, Response } from "express";
-import { AuthRequest } from "../middleware/auth.middleware";
+import {
+    Request,
+    Response,
+} from "express";
+
+
+import {
+    AuthRequest,
+} from "../middleware/auth.middleware";
+
+
 import {
     createDocument,
     getUserDocuments,
@@ -7,77 +16,133 @@ import {
     addCollaborator,
     updateDocument,
     deleteDocument,
-} from "../services/document.service";
-import { getDocumentHistory } from "../services/document-history.service";
-import {
     updateCollaboratorRole,
     removeCollaborator,
 } from "../services/document.service";
+
+
+import {
+    getDocumentHistory,
+} from "../services/document-history.service";
+
+
+import {
+    AuthSocket,
+} from "../sockets/socket.auth";
+
+
+import {
+    removeUserFromDocument,
+    broadcastPresence,
+} from "../sockets/presence";
+
+
+// ==========================================
+// CREATE DOCUMENT
+// ==========================================
 
 export const create = async (
     req: AuthRequest,
     res: Response
 ): Promise<void> => {
-    try {
-        const { title, content } = req.body;
 
-        // Check title
+    try {
+
+        const {
+            title,
+            content,
+        } = req.body;
+
+
         if (!title) {
+
             res.status(400).json({
                 success: false,
-                message: "Document title is required",
+                message:
+                    "Document title is required",
             });
+
             return;
         }
 
-        // Get logged-in user ID from JWT middleware
-        const ownerId = req.user?.userId;// jo doc create karaga wo owner ban jayga
+
+        const ownerId =
+            req.user?.userId;
 
 
         if (!ownerId) {
+
             res.status(401).json({
                 success: false,
-                message: "Unauthorized",
+                message:
+                    "Unauthorized",
             });
+
             return;
         }
 
-        // Create document
-        const document = await createDocument({
-            title,
-            content,
-            ownerId,
-        });
+
+        const document =
+            await createDocument({
+                title,
+                content,
+                ownerId,
+            });
+
 
         res.status(201).json({
             success: true,
-            message: "Document created successfully",
+            message:
+                "Document created successfully",
             document,
         });
 
     } catch (error: any) {
+
         res.status(500).json({
             success: false,
-            message: error.message || "Failed to create document",
+            message:
+                error.message ||
+                "Failed to create document",
         });
+
     }
+
 };
+
+
+// ==========================================
+// GET ALL DOCUMENTS
+// ==========================================
+
 export const getAll = async (
     req: AuthRequest,
     res: Response
 ): Promise<void> => {
+
     try {
-        const userId = req.user?.userId;
+
+        const userId =
+            req.user?.userId;
+
 
         if (!userId) {
+
             res.status(401).json({
                 success: false,
-                message: "Unauthorized",
+                message:
+                    "Unauthorized",
             });
+
             return;
         }
 
-        const documents = await getUserDocuments(userId);
+
+        const documents =
+            await getUserDocuments(
+                userId
+            );
+
 
         res.status(200).json({
             success: true,
@@ -85,43 +150,68 @@ export const getAll = async (
         });
 
     } catch (error: any) {
+
         res.status(500).json({
             success: false,
-            message: error.message || "Failed to fetch documents",
+            message:
+                error.message ||
+                "Failed to fetch documents",
         });
+
     }
+
 };
 
+
+// ==========================================
+// GET DOCUMENT BY ID
+// ==========================================
 
 export const getById = async (
     req: AuthRequest,
     res: Response
 ): Promise<void> => {
+
     try {
-        const documentId = req.params.documentId as string;
+
+        const documentId =
+            req.params.documentId as string;
+
 
         if (!documentId) {
+
             res.status(400).json({
                 success: false,
-                message: "Document ID is required",
+                message:
+                    "Document ID is required",
             });
+
             return;
         }
 
-        const userId = req.user?.userId;
+
+        const userId =
+            req.user?.userId;
+
 
         if (!userId) {
+
             res.status(401).json({
                 success: false,
-                message: "Unauthorized",
+                message:
+                    "Unauthorized",
             });
+
             return;
         }
 
-        const document = await getDocumentById(
-            documentId,
-            userId
-        );
+
+        const document =
+            await getDocumentById(
+                documentId,
+                userId
+            );
+
 
         res.status(200).json({
             success: true,
@@ -129,177 +219,303 @@ export const getById = async (
         });
 
     } catch (error: any) {
+
         res.status(404).json({
             success: false,
-            message: error.message,
+            message:
+                error.message,
         });
+
     }
+
 };
 
-export const addCollaboratorToDocument = async (
-    req: AuthRequest,
-    res: Response
-): Promise<void> => {
-    try {
-        const documentId = req.params.documentId as string;
 
-        const { email, role } = req.body;
+// ==========================================
+// ADD COLLABORATOR
+// ==========================================
 
-        // Logged-in user
-        const ownerId = req.user?.userId;
+export const addCollaboratorToDocument =
+    async (
+        req: AuthRequest,
+        res: Response
+    ): Promise<void> => {
 
-        if (!ownerId) {
-            res.status(401).json({
-                success: false,
-                message: "Unauthorized",
+        try {
+
+            const documentId =
+                req.params.documentId as string;
+
+
+            const {
+                email,
+                role,
+            } = req.body;
+
+
+            const ownerId =
+                req.user?.userId;
+
+
+            if (!ownerId) {
+
+                res.status(401).json({
+                    success: false,
+                    message:
+                        "Unauthorized",
+                });
+
+                return;
+            }
+
+
+            if (!email || !role) {
+
+                res.status(400).json({
+                    success: false,
+                    message:
+                        "Email and role are required",
+                });
+
+                return;
+            }
+
+
+            if (
+                role !== "editor" &&
+                role !== "viewer"
+            ) {
+
+                res.status(400).json({
+                    success: false,
+                    message:
+                        "Role must be editor or viewer",
+                });
+
+                return;
+            }
+
+
+            const document =
+                await addCollaborator(
+                    documentId,
+                    ownerId,
+                    email,
+                    role
+                );
+
+
+            res.status(200).json({
+                success: true,
+                message:
+                    "Collaborator added successfully",
+                document,
             });
-            return;
-        }
 
-        // Validate input
-        if (!email || !role) {
+        } catch (error: any) {
+
             res.status(400).json({
                 success: false,
-                message: "Email and role are required",
+                message:
+                    error.message ||
+                    "Failed to add collaborator",
             });
-            return;
+
         }
 
-        // Validate role
-        if (role !== "editor" && role !== "viewer") {
-            res.status(400).json({
-                success: false,
-                message: "Role must be editor or viewer",
-            });
-            return;
-        }
+    };
 
-        const document = await addCollaborator(
-            documentId,
-            ownerId,
-            email,
-            role
-        );
 
-        res.status(200).json({
-            success: true,
-            message: "Collaborator added successfully",
-            document,
-        });
-
-    } catch (error: any) {
-        res.status(400).json({
-            success: false,
-            message: error.message || "Failed to add collaborator",
-        });
-    }
-};
+// ==========================================
+// UPDATE DOCUMENT
+// ==========================================
 
 export const update = async (
     req: AuthRequest,
     res: Response
 ): Promise<void> => {
-    try {
-        const documentId = req.params.documentId as string;
 
-        const userId = req.user?.userId;
+    try {
+
+        const documentId =
+            req.params.documentId as string;
+
+
+        const userId =
+            req.user?.userId;
+
 
         if (!userId) {
+
             res.status(401).json({
                 success: false,
-                message: "Unauthorized",
+                message:
+                    "Unauthorized",
             });
+
             return;
         }
 
-        const { title, content } = req.body;
 
-        if (title === undefined && content === undefined) {
+        const {
+            title,
+            content,
+            expectedVersion,
+        } = req.body;
+
+
+        if (
+            title === undefined &&
+            content === undefined
+        ) {
+
             res.status(400).json({
                 success: false,
-                message: "Nothing to update",
+                message:
+                    "Nothing to update",
             });
+
             return;
         }
 
-        const document = await updateDocument(
-            documentId,
-            userId,
-            title,
-            content
-        );
+
+        const document =
+            await updateDocument(
+                documentId,
+                userId,
+                title,
+                content,
+                expectedVersion
+            );
+
 
         res.status(200).json({
             success: true,
-            message: "Document updated successfully",
+            message:
+                "Document updated successfully",
             document,
         });
 
     } catch (error: any) {
+
+        if (
+            error?.code ===
+            "VERSION_CONFLICT"
+        ) {
+
+            res.status(409).json({
+                success: false,
+                message:
+                    error.message,
+                document:
+                    error.document,
+            });
+
+            return;
+        }
+
+
         res.status(403).json({
             success: false,
-            message: error.message,
+            message:
+                error.message,
         });
+
     }
+
 };
 
 
-
-
-//delete controller
+// ==========================================
+// DELETE DOCUMENT
+// ==========================================
 
 export const remove = async (
     req: AuthRequest,
     res: Response
 ): Promise<void> => {
-    try {
-        const documentId = req.params.documentId as string;
 
-        const userId = req.user?.userId;
+    try {
+
+        const documentId =
+            req.params.documentId as string;
+
+
+        const userId =
+            req.user?.userId;
+
 
         if (!userId) {
+
             res.status(401).json({
                 success: false,
-                message: "Unauthorized",
+                message:
+                    "Unauthorized",
             });
+
             return;
         }
+
 
         await deleteDocument(
             documentId,
             userId
         );
 
+
         res.status(200).json({
             success: true,
-            message: "Document deleted successfully",
+            message:
+                "Document deleted successfully",
         });
 
     } catch (error: any) {
+
         res.status(403).json({
             success: false,
-            message: error.message,
+            message:
+                error.message,
         });
+
     }
+
 };
+
+
+// ==========================================
+// GET HISTORY
+// ==========================================
+
 export const getHistory = async (
     req: Request,
     res: Response
 ) => {
-    try {
-        const documentId = req.params.documentId as string;
-        const userId = req.user!.userId;
 
-        const history = await getDocumentHistory(
-            documentId,
-            userId
-        );
+    try {
+
+        const documentId =
+            req.params.documentId as string;
+
+
+        const userId =
+            (req as AuthRequest)
+                .user!.userId;
+
+
+        const history =
+            await getDocumentHistory(
+                documentId,
+                userId
+            );
+
 
         return res.status(200).json({
             success: true,
             history,
         });
+
     } catch (error) {
+
         return res.status(500).json({
             success: false,
             message:
@@ -307,95 +523,187 @@ export const getHistory = async (
                     ? error.message
                     : "Failed to fetch document history",
         });
+
     }
+
 };
 
-// ================= UPDATE COLLABORATOR ROLE =================
 
-export const updateCollaborator = async (
-    req: AuthRequest,
-    res: Response
-): Promise<void> => {
-    try {
-        const documentId =
-            req.params.documentId as string;
+// ==========================================
+// UPDATE COLLABORATOR ROLE
+// ==========================================
 
-        const collaboratorId =
-            req.params.collaboratorId as string;
+export const updateCollaborator =
+    async (
+        req: AuthRequest,
+        res: Response
+    ): Promise<void> => {
 
-        const { role } = req.body;
+        try {
 
-        const ownerId = req.user?.userId;
+            const documentId =
+                req.params.documentId as string;
 
-        if (!ownerId) {
-            res.status(401).json({
-                success: false,
-                message: "Unauthorized",
+
+            const collaboratorId =
+                req.params.collaboratorId as string;
+
+
+            const {
+                role,
+            } = req.body;
+
+
+            const ownerId =
+                req.user?.userId;
+
+
+            if (!ownerId) {
+
+                res.status(401).json({
+                    success: false,
+                    message:
+                        "Unauthorized",
+                });
+
+                return;
+            }
+
+
+            if (
+                role !== "editor" &&
+                role !== "viewer"
+            ) {
+
+                res.status(400).json({
+                    success: false,
+                    message:
+                        "Role must be editor or viewer",
+                });
+
+                return;
+            }
+
+
+            const document =
+                await updateCollaboratorRole(
+                    documentId,
+                    ownerId,
+                    collaboratorId,
+                    role
+                );
+
+
+            // ======================================
+            // SOCKET NOTIFICATION
+            // ======================================
+
+            const io =
+                req.app.get("io");
+
+
+            if (io) {
+
+                for (
+                    const [
+                        socketId,
+                        rawSocket,
+                    ]
+                    of io.sockets.sockets
+                ) {
+
+                    const targetSocket =
+                        rawSocket as AuthSocket;
+
+
+                    if (
+                        targetSocket.user
+                            ?.userId ===
+                        collaboratorId
+                    ) {
+
+                        targetSocket.emit(
+                            "collaborator-role-changed",
+                            {
+                                documentId,
+                                role,
+                            }
+                        );
+
+
+                        console.log(
+                            `🔄 Role changed for ${targetSocket.user.email} → ${role}`
+                        );
+
+                    }
+
+                }
+
+            }
+
+
+            res.status(200).json({
+                success: true,
+                message:
+                    "Collaborator role updated successfully",
+                document,
             });
-            return;
-        }
 
-        if (
-            role !== "editor" &&
-            role !== "viewer"
-        ) {
+        } catch (error: any) {
+
+            console.error(
+                "Update collaborator error:",
+                error
+            );
+
+
             res.status(400).json({
                 success: false,
                 message:
-                    "Role must be editor or viewer",
+                    error.message ||
+                    "Failed to update collaborator",
             });
-            return;
+
         }
 
-        const document =
-            await updateCollaboratorRole(
-                documentId,
-                ownerId,
-                collaboratorId,
-                role
-            );
-
-        res.status(200).json({
-            success: true,
-            message:
-                "Collaborator role updated successfully",
-            document,
-        });
-
-    } catch (error: any) {
-        res.status(400).json({
-            success: false,
-            message:
-                error.message ||
-                "Failed to update collaborator",
-        });
-    }
-};
+    };
 
 
-// ================= REMOVE COLLABORATOR =================
+// ==========================================
+// REMOVE COLLABORATOR
+// ==========================================
 
 export const removeCollaboratorFromDocument =
     async (
         req: AuthRequest,
         res: Response
     ): Promise<void> => {
+
         try {
+
             const documentId =
                 req.params.documentId as string;
+
 
             const collaboratorId =
                 req.params.collaboratorId as string;
 
-            const ownerId = req.user?.userId;
+
+            const ownerId =
+                req.user?.userId;
+
 
             if (!ownerId) {
+
                 res.status(401).json({
                     success: false,
-                    message: "Unauthorized",
+                    message:
+                        "Unauthorized",
                 });
+
                 return;
             }
+
 
             const document =
                 await removeCollaborator(
@@ -403,6 +711,79 @@ export const removeCollaboratorFromDocument =
                     ownerId,
                     collaboratorId
                 );
+
+
+            // ======================================
+            // SOCKET NOTIFICATION
+            // ======================================
+
+            const io =
+                req.app.get("io");
+
+
+            if (io) {
+
+                for (
+                    const [
+                        socketId,
+                        rawSocket,
+                    ]
+                    of io.sockets.sockets
+                ) {
+
+                    const targetSocket =
+                        rawSocket as AuthSocket;
+
+
+                    if (
+                        targetSocket.user
+                            ?.userId ===
+                        collaboratorId
+                    ) {
+
+                        // Tell frontend
+                        targetSocket.emit(
+                            "collaborator-removed",
+                            {
+                                documentId,
+                            }
+                        );
+
+
+                        // Remove from room
+                        targetSocket.leave(
+                            `document:${documentId}`
+                        );
+
+
+                        // Clear current document
+                        targetSocket.joinedDocumentId =
+                            undefined;
+
+
+                        // Remove presence
+                        removeUserFromDocument(
+                            documentId,
+                            collaboratorId
+                        );
+
+
+                        await broadcastPresence(
+                            io,
+                            documentId
+                        );
+
+
+                        console.log(
+                            `🚫 ${targetSocket.user.email} removed from document ${documentId}`
+                        );
+
+                    }
+
+                }
+
+            }
+
 
             res.status(200).json({
                 success: true,
@@ -412,11 +793,20 @@ export const removeCollaboratorFromDocument =
             });
 
         } catch (error: any) {
+
+            console.error(
+                "Remove collaborator error:",
+                error
+            );
+
+
             res.status(400).json({
                 success: false,
                 message:
                     error.message ||
                     "Failed to remove collaborator",
             });
+
         }
+
     };

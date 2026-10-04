@@ -1,7 +1,11 @@
 import "dotenv/config";
+
 import http from "http";
+
 import app from "./app";
+
 import connectDB from "./config/db";
+
 import { Server } from "socket.io";
 
 import {
@@ -9,54 +13,131 @@ import {
     AuthSocket,
 } from "./sockets/socket.auth";
 
-import { registerDocumentSocket } from "./sockets/document.socket";
+import {
+    registerDocumentSocket,
+} from "./sockets/document.socket";
 
-const PORT = process.env.PORT || 8000;
+
+const PORT =
+    process.env.PORT || 8000;
+
 
 const startServer = async () => {
-    await connectDB();
 
-    const server = http.createServer(app);
+    try {
 
-    const io = new Server(server, {
-        cors: {
-            origin: "http://localhost:3000",
-            credentials: true,
-        },
-    });
+        // ==========================================
+        // DATABASE
+        // ==========================================
 
-    // Authenticate every socket connection
-    io.use(authenticateSocket);
+        await connectDB();
 
-    io.on("connection", (socket) => {
-        console.log(
-            "🔌 Client connected:",
-            socket.id
+
+        // ==========================================
+        // HTTP SERVER
+        // ==========================================
+
+        const server =
+            http.createServer(app);
+
+
+        // ==========================================
+        // SOCKET.IO
+        // ==========================================
+
+        const io =
+            new Server(server, {
+
+                cors: {
+                    origin:
+                        "http://localhost:3000",
+
+                    credentials: true,
+                },
+
+            });
+
+
+        // Make Socket.IO available
+        // inside Express controllers
+
+        app.set("io", io);
+
+
+        // ==========================================
+        // SOCKET AUTHENTICATION
+        // ==========================================
+
+        io.use(
+            authenticateSocket
         );
 
-        // Register document socket events
-        registerDocumentSocket(
-            io,
-            socket as AuthSocket
+
+        // ==========================================
+        // SOCKET CONNECTION
+        // ==========================================
+
+        io.on(
+            "connection",
+            (socket) => {
+
+                console.log(
+                    "🔌 Client connected:",
+                    socket.id
+                );
+
+
+                registerDocumentSocket(
+                    io,
+                    socket as AuthSocket
+                );
+
+
+                socket.on(
+                    "disconnect",
+                    () => {
+
+                        console.log(
+                            "🔌 Client disconnected:",
+                            socket.id
+                        );
+
+                    }
+                );
+
+            }
         );
 
-        socket.on("disconnect", () => {
-            console.log(
-                "🔌 Client disconnected:",
-                socket.id
-            );
-        });
-    });
 
-    server.listen(PORT, () => {
-        console.log(
-            `🚀 Server running on port ${PORT}`
+        // ==========================================
+        // START SERVER
+        // ==========================================
+
+        server.listen(
+            PORT,
+            () => {
+
+                console.log(
+                    `🚀 Server running on port ${PORT}`
+                );
+
+                console.log(
+                    `🔌 Socket.IO running on port ${PORT}`
+                );
+
+            }
         );
 
-        console.log(
-            `🔌 Socket.IO running on port ${PORT}`
+    } catch (error) {
+
+        console.error(
+            "❌ Failed to start server:",
+            error
         );
-    });
+
+        process.exit(1);
+    }
 };
+
 
 startServer();

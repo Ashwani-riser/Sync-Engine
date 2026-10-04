@@ -31,6 +31,21 @@ interface DocumentData {
     createdAt: string;
     updatedAt: string;
 }
+interface HistoryItem {
+    _id: string;
+    action: "created" | "updated" | "deleted" | "ai";
+    title?: string;
+    content?: string;
+    version: number;
+    user:
+        | string
+        | {
+              _id: string;
+              name: string;
+              email: string;
+          };
+    createdAt: string;
+}
 
 interface PresenceUser {
     userId: string;
@@ -110,6 +125,16 @@ export default function DocumentPage() {
 
     const canDelete =
         role === "owner";
+
+    // ================= HISTORY STATE =================
+
+const [historyOpen, setHistoryOpen] = useState(false);
+
+const [historyLoading, setHistoryLoading] =
+    useState(false);
+
+const [history, setHistory] =
+    useState<HistoryItem[]>([]);     
 
 
     // ========================================
@@ -209,6 +234,68 @@ export default function DocumentPage() {
                 );
             }
         );
+        // ========================================
+// COLLABORATOR ROLE CHANGED
+// ========================================
+
+socket.on(
+    "collaborator-role-changed",
+    (data) => {
+
+        console.log(
+            "🔄 Role changed:",
+            data
+        );
+
+        if (
+            data.documentId !== documentId
+        ) {
+            return;
+        }
+
+        setRole(
+            data.role
+        );
+
+        setMessage(
+            `Your role changed to ${data.role}`
+        );
+    }
+);
+
+
+// ========================================
+// COLLABORATOR REMOVED
+// ========================================
+
+socket.on(
+    "collaborator-removed",
+    (data) => {
+
+        console.log(
+            "🚫 Removed from document:",
+            data
+        );
+
+        if (
+            data.documentId !== documentId
+        ) {
+            return;
+        }
+
+        setMessage(
+            "You no longer have access to this document"
+        );
+
+        setTimeout(() => {
+
+            router.push(
+                "/dashboard"
+            );
+
+        }, 1200);
+    }
+);
 
 
         // LIVE TYPING
@@ -702,6 +789,43 @@ export default function DocumentPage() {
             );
         }
     };
+    // ========================================
+// HISTORY
+// ========================================
+
+const handleHistory = async () => {
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    setMessage("");
+
+    try {
+        const response = await fetch(
+            `http://localhost:8000/api/documents/${documentId}/history`,
+            {
+                credentials: "include",
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            setMessage(
+                data.message || "Failed to load history"
+            );
+            return;
+        }
+
+        setHistory(data.history || []);
+    } catch (error) {
+        console.error(error);
+
+        setMessage(
+            "Unable to load document history"
+        );
+    } finally {
+        setHistoryLoading(false);
+    }
+};
 
 
     // ========================================
@@ -1069,6 +1193,13 @@ export default function DocumentPage() {
                         <span className="hidden rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-400 sm:block">
                             v{version}
                         </span>
+
+                        <button
+                              onClick={handleHistory}
+                              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                        >
+                              History
+                        </button>
 
 
                         {/* SHARE */}
@@ -1577,8 +1708,201 @@ export default function DocumentPage() {
 
             </div>
 
+{/* ========================================
+    HISTORY MODAL
+======================================== */}
 
-            {/* ========================================
+{historyOpen && (
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
+
+        {/* BACKDROP */}
+        <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setHistoryOpen(false)}
+        />
+
+        {/* CENTER */}
+        <div className="relative flex min-h-full items-center justify-center p-4">
+
+            {/* MODAL */}
+            <div
+                className="relative w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
+
+                {/* HEADER */}
+                <div className="mb-6 flex items-start justify-between">
+
+                    <div>
+                        <h2 className="text-xl font-semibold text-white">
+                            Document History
+                        </h2>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                            View previous versions and changes.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={() =>
+                            setHistoryOpen(false)
+                        }
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-slate-500 transition hover:bg-slate-800 hover:text-white"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                {/* LOADING */}
+                {historyLoading && (
+                    <div className="flex items-center justify-center py-12">
+                        <p className="text-sm text-slate-500">
+                            Loading history...
+                        </p>
+                    </div>
+                )}
+
+
+                {/* EMPTY */}
+                {!historyLoading &&
+                    history.length === 0 && (
+                        <div className="rounded-xl border border-slate-800 bg-slate-950 p-8 text-center">
+                            <p className="text-sm text-slate-500">
+                                No history available yet.
+                            </p>
+                        </div>
+                    )}
+
+
+                {/* HISTORY LIST */}
+                {!historyLoading &&
+                    history.length > 0 && (
+                        <div className="max-h-[65vh] space-y-4 overflow-y-auto pr-2">
+
+                            {history.map(
+                                (item, index) => {
+
+                                    const user =
+                                        typeof item.user ===
+                                        "string"
+                                            ? null
+                                            : item.user;
+
+                                    return (
+                                        <div
+                                            key={
+                                                item._id ||
+                                                index
+                                            }
+                                            className="rounded-xl border border-slate-800 bg-slate-950 p-4"
+                                        >
+
+                                            {/* TOP */}
+                                            <div className="flex items-start justify-between gap-4">
+
+                                                <div>
+
+                                                    <p className="text-sm font-medium text-white">
+                                                        Version{" "}
+                                                        {item.version}
+                                                    </p>
+
+                                                    <p className="mt-1 text-xs text-slate-400">
+                                                        {user?.name ||
+                                                            "Unknown user"}
+                                                    </p>
+
+                                                    {user?.email && (
+                                                        <p className="text-xs text-slate-600">
+                                                            {
+                                                                user.email
+                                                            }
+                                                        </p>
+                                                    )}
+
+                                                    <p className="mt-1 text-xs text-slate-600">
+                                                        {new Date(
+                                                            item.createdAt
+                                                        ).toLocaleString()}
+                                                    </p>
+
+                                                </div>
+
+
+                                                {/* ACTION */}
+                                                <span
+                                                    className={`rounded-md px-2 py-1 text-xs ${
+                                                        item.action ===
+                                                        "created"
+                                                            ? "bg-green-500/10 text-green-400"
+                                                            : item.action ===
+                                                              "updated"
+                                                            ? "bg-blue-500/10 text-blue-400"
+                                                            : item.action ===
+                                                              "ai"
+                                                            ? "bg-purple-500/10 text-purple-400"
+                                                            : "bg-red-500/10 text-red-400"
+                                                    }`}
+                                                >
+                                                    {item.action}
+                                                </span>
+
+                                            </div>
+
+
+                                            {/* TITLE */}
+                                            {item.title && (
+                                                <div className="mt-4">
+
+                                                    <p className="mb-1 text-xs text-slate-600">
+                                                        Title
+                                                    </p>
+
+                                                    <p className="text-sm text-slate-300">
+                                                        {item.title}
+                                                    </p>
+
+                                                </div>
+                                            )}
+
+
+                                            {/* CONTENT */}
+                                            {item.content && (
+                                                <div className="mt-4">
+
+                                                    <p className="mb-1 text-xs text-slate-600">
+                                                        Content
+                                                    </p>
+
+                                                    <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-800 bg-slate-900 p-3">
+
+                                                        <p className="whitespace-pre-wrap text-sm leading-6 text-slate-400">
+                                                            {
+                                                                item.content
+                                                            }
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+                                        </div>
+                                    );
+                                }
+                            )}
+
+                        </div>
+                    )}
+
+            </div>
+        </div>
+    </div>
+)}
+
+  {/* ========================================
     SHARE MODAL
 ======================================== */}
 

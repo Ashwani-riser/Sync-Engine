@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import {
     create,
     getAll,
@@ -11,13 +12,36 @@ import {
     getHistory,
 } from "../controllers/document.controller";
 
-import { authenticate } from "../middleware/auth.middleware";
+import {
+    authenticate,
+} from "../middleware/auth.middleware";
 
-const router = Router();
 
-router.post("/", authenticate, create);
+const router =
+    Router();
 
-router.get("/", authenticate, getAll);
+
+// ==========================================
+// DOCUMENTS
+// ==========================================
+
+router.post(
+    "/",
+    authenticate,
+    create
+);
+
+
+router.get(
+    "/",
+    authenticate,
+    getAll
+);
+
+
+// ==========================================
+// HISTORY
+// ==========================================
 
 router.get(
     "/:documentId/history",
@@ -25,19 +49,57 @@ router.get(
     getHistory
 );
 
-router.get("/:documentId", authenticate, getById);
 
-// Add collaborator — only owner can do this
+// ==========================================
+// COLLABORATORS
+// ==========================================
+
 router.post(
     "/:documentId/collaborators",
     authenticate,
     addCollaboratorToDocument
 );
+
+
+router.patch(
+    "/:documentId/collaborators/:collaboratorId",
+    authenticate,
+    updateCollaborator
+);
+
+
+router.delete(
+    "/:documentId/collaborators/:collaboratorId",
+    authenticate,
+    removeCollaboratorFromDocument
+);
+
+
+// ==========================================
+// DOCUMENT BY ID
+// ==========================================
+
+router.get(
+    "/:documentId",
+    authenticate,
+    getById
+);
+
+
+// ==========================================
+// UPDATE
+// ==========================================
+
 router.patch(
     "/:documentId",
     authenticate,
     update
 );
+
+
+// ==========================================
+// DELETE
+// ==========================================
 
 router.delete(
     "/:documentId",
@@ -45,25 +107,5 @@ router.delete(
     remove
 );
 
-// Add collaborator
-router.post(
-    "/:documentId/collaborators",
-    authenticate,
-    addCollaboratorToDocument
-);
-
-// Change collaborator role
-router.patch(
-    "/:documentId/collaborators/:collaboratorId",
-    authenticate,
-    updateCollaborator
-);
-
-// Remove collaborator
-router.delete(
-    "/:documentId/collaborators/:collaboratorId",
-    authenticate,
-    removeCollaboratorFromDocument
-);
 
 export default router;

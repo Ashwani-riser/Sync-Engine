@@ -9,6 +9,10 @@ import {
     deleteDocument,
 } from "../services/document.service";
 import { getDocumentHistory } from "../services/document-history.service";
+import {
+    updateCollaboratorRole,
+    removeCollaborator,
+} from "../services/document.service";
 
 export const create = async (
     req: AuthRequest,
@@ -305,3 +309,114 @@ export const getHistory = async (
         });
     }
 };
+
+// ================= UPDATE COLLABORATOR ROLE =================
+
+export const updateCollaborator = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const documentId =
+            req.params.documentId as string;
+
+        const collaboratorId =
+            req.params.collaboratorId as string;
+
+        const { role } = req.body;
+
+        const ownerId = req.user?.userId;
+
+        if (!ownerId) {
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+            return;
+        }
+
+        if (
+            role !== "editor" &&
+            role !== "viewer"
+        ) {
+            res.status(400).json({
+                success: false,
+                message:
+                    "Role must be editor or viewer",
+            });
+            return;
+        }
+
+        const document =
+            await updateCollaboratorRole(
+                documentId,
+                ownerId,
+                collaboratorId,
+                role
+            );
+
+        res.status(200).json({
+            success: true,
+            message:
+                "Collaborator role updated successfully",
+            document,
+        });
+
+    } catch (error: any) {
+        res.status(400).json({
+            success: false,
+            message:
+                error.message ||
+                "Failed to update collaborator",
+        });
+    }
+};
+
+
+// ================= REMOVE COLLABORATOR =================
+
+export const removeCollaboratorFromDocument =
+    async (
+        req: AuthRequest,
+        res: Response
+    ): Promise<void> => {
+        try {
+            const documentId =
+                req.params.documentId as string;
+
+            const collaboratorId =
+                req.params.collaboratorId as string;
+
+            const ownerId = req.user?.userId;
+
+            if (!ownerId) {
+                res.status(401).json({
+                    success: false,
+                    message: "Unauthorized",
+                });
+                return;
+            }
+
+            const document =
+                await removeCollaborator(
+                    documentId,
+                    ownerId,
+                    collaboratorId
+                );
+
+            res.status(200).json({
+                success: true,
+                message:
+                    "Collaborator removed successfully",
+                document,
+            });
+
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                message:
+                    error.message ||
+                    "Failed to remove collaborator",
+            });
+        }
+    };

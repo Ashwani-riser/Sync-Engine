@@ -20,27 +20,12 @@ export default function GoogleSignInButton({
   const buttonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const loadGoogleScript = () => {
-      if (window.google) {
-        initializeGoogle();
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-
-      script.onload = initializeGoogle;
-
-      document.head.appendChild(script);
-    };
-
     const initializeGoogle = () => {
       if (!window.google || !buttonRef.current) return;
 
       window.google.accounts.id.initialize({
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+
         callback: (response: any) => {
           if (response?.credential) {
             onSuccess(response.credential);
@@ -48,20 +33,43 @@ export default function GoogleSignInButton({
             onError?.();
           }
         },
+
+        auto_select: false,
+        cancel_on_tap_outside: true,
       });
 
       buttonRef.current.innerHTML = "";
 
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        theme: "filled_black",
-        size: "large",
-        width: 360,
-        text: "continue_with",
-        shape: "rectangular",
-      });
+      window.google.accounts.id.renderButton(
+        buttonRef.current,
+        {
+          theme: "outline",
+          size: "large",
+          width: 360,
+          text: "continue_with",
+          shape: "rectangular",
+        }
+      );
     };
 
-    loadGoogleScript();
+    if (window.google) {
+      initializeGoogle();
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+
+    script.onload = initializeGoogle;
+
+    document.head.appendChild(script);
+
+    return () => {
+      script.remove();
+    };
   }, [onSuccess, onError]);
 
   return (

@@ -9,12 +9,14 @@ interface CreateDocumentInput {
     ownerId: string;
 }
 
+
+// ================= CREATE DOCUMENT =================
+
 export const createDocument = async ({
     title,
     content = "",
     ownerId,
 }: CreateDocumentInput) => {
-
     const document = await Document.create({
         title,
         content,
@@ -25,7 +27,7 @@ export const createDocument = async ({
 };
 
 
-// GET ALL USER DOCUMENTS
+// ================= GET USER DOCUMENTS =================
 
 export const getUserDocuments = async (userId: string) => {
     const documents = await Document.find({
@@ -35,13 +37,15 @@ export const getUserDocuments = async (userId: string) => {
         ],
     })
         .sort({ updatedAt: -1 })
-        .select("-content");
+        .select("-content")
+        .populate("owner", "name email")
+        .populate("collaborators.user", "name email");
 
     return documents;
 };
 
 
-// OWNER OR COLLABORATOR CAN ACCESS
+// ================= GET DOCUMENT BY ID =================
 
 export const getDocumentById = async (
     documentId: string,
@@ -53,7 +57,9 @@ export const getDocumentById = async (
             { owner: userId },
             { "collaborators.user": userId },
         ],
-    });
+    })
+        .populate("owner", "name email")
+        .populate("collaborators.user", "name email");
 
     if (!document) {
         throw new Error(
@@ -65,7 +71,7 @@ export const getDocumentById = async (
 };
 
 
-// ADD COLLABORATOR
+// ================= ADD COLLABORATOR =================
 
 export const addCollaborator = async (
     documentId: string,
@@ -74,7 +80,6 @@ export const addCollaborator = async (
     role: "editor" | "viewer"
 ) => {
 
-    // Verify document and owner
     const document = await Document.findOne({
         _id: documentId,
         owner: ownerId,
@@ -86,31 +91,42 @@ export const addCollaborator = async (
         );
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await User.findOne({
+        email: normalizedEmail,
+    });
 
     if (!user) {
-        throw new Error("User not found");
+        throw new Error(
+            "No registered user found with this email"
+        );
     }
 
-    // Owner cannot become collaborator
-    if (document.owner.toString() === user._id.toString()) {
+    // Owner cannot be collaborator
+    if (
+        document.owner.toString() ===
+        user._id.toString()
+    ) {
         throw new Error(
             "Owner is already part of this document"
         );
     }
 
     // Check existing collaborator
-    const alreadyCollaborator = document.collaborators.some(
-        (collaborator) =>
-            collaborator.user.toString() === user._id.toString()
-    );
+    const alreadyCollaborator =
+        document.collaborators.some(
+            (collaborator) =>
+                collaborator.user.toString() ===
+                user._id.toString()
+        );
 
     if (alreadyCollaborator) {
-        throw new Error("User is already a collaborator");
+        throw new Error(
+            "User is already a collaborator"
+        );
     }
 
-    // Add collaborator
     document.collaborators.push({
         user: user._id,
         role,
@@ -118,8 +134,99 @@ export const addCollaborator = async (
 
     await document.save();
 
-    return document;
+    return await Document.findById(documentId)
+        .populate("owner", "name email")
+        .populate("collaborators.user", "name email");
 };
+
+
+// ================= UPDATE COLLABORATOR ROLE =================
+
+export const updateCollaboratorRole = async (
+    documentId: string,
+    ownerId: string,
+    collaboratorId: string,
+    role: "editor" | "viewer"
+) => {
+
+    const document = await Document.findOne({
+        _id: documentId,
+        owner: ownerId,
+    });
+
+    if (!document) {
+        throw new Error(
+            "Document not found or you are not the owner"
+        );
+    }
+
+    const collaborator = document.collaborators.find(
+        (item) =>
+            item.user.toString() === collaboratorId
+    );
+
+    if (!collaborator) {
+        throw new Error(
+            "Collaborator not found"
+        );
+    }
+
+    collaborator.role = role;
+
+    await document.save();
+
+    return await Document.findById(documentId)
+        .populate("owner", "name email")
+        .populate("collaborators.user", "name email");
+};
+
+
+// ================= REMOVE COLLABORATOR =================
+
+export const removeCollaborator = async (
+    documentId: string,
+    ownerId: string,
+    collaboratorId: string
+) => {
+
+    const document = await Document.findOne({
+        _id: documentId,
+        owner: ownerId,
+    });
+
+    if (!document) {
+        throw new Error(
+            "Document not found or you are not the owner"
+        );
+    }
+
+    const collaboratorExists =
+        document.collaborators.some(
+            (item) =>
+                item.user.toString() === collaboratorId
+        );
+
+    if (!collaboratorExists) {
+        throw new Error(
+            "Collaborator not found"
+        );
+    }
+
+    document.collaborators =
+        document.collaborators.filter(
+            (item) =>
+                item.user.toString() !== collaboratorId
+        );
+
+    await document.save();
+
+    return await Document.findById(documentId)
+        .populate("owner", "name email")
+        .populate("collaborators.user", "name email");
+};
+
+
+// ================= UPDATE DOCUMENT =================
 
 export const updateDocument = async (
     documentId: string,
@@ -129,13 +236,16 @@ export const updateDocument = async (
     expectedVersion?: number
 ) => {
 
-    const role = await getUserRole( //permission.service ko call daga
+    const role = await getUserRole(
         documentId,
         userId
-    );// permission.service userid dhka ga agr wo owner ya editor h to usko edit krne ka permission h otherwise nhi h
+    );
 
     // Only owner and editor can edit
-    if (role !== "owner" && role !== "editor") {
+    if (
+        role !== "owner" &&
+        role !== "editor"
+    ) {
         throw new Error(
             "You don't have permission to edit this document"
         );
@@ -150,21 +260,25 @@ export const updateDocument = async (
     }
 
     // Version conflict check
-     if (
-    expectedVersion !== undefined &&
-    document.version !== expectedVersion
-      ) {
-    const error = new Error("Document has been modified by another user");
-    (error as any).code = "VERSION_CONFLICT";
-    (error as any).document = {
-      title: document.title,
-      content: document.content,
-      version: document.version,
-    };
+    if (
+        expectedVersion !== undefined &&
+        document.version !== expectedVersion
+    ) {
+        const error = new Error(
+            "Document has been modified by another user"
+        );
 
-    throw error;
+        (error as any).code =
+            "VERSION_CONFLICT";
+
+        (error as any).document = {
+            title: document.title,
+            content: document.content,
+            version: document.version,
+        };
+
+        throw error;
     }
-
 
     if (title !== undefined) {
         document.title = title;
@@ -174,29 +288,30 @@ export const updateDocument = async (
         document.content = content;
     }
 
-    // Increase version after successful update
     document.version += 1;
+
     await document.save();
 
     await createDocumentHistory({
-    documentId,
-    userId,
-    action: "updated",
-    title: document.title,
-    content: document.content,
-    version: document.version,
-  });
+        documentId,
+        userId,
+        action: "updated",
+        title: document.title,
+        content: document.content,
+        version: document.version,
+    });
 
     return document;
 };
 
-// DELETE DOCUMENT
+
+// ================= DELETE DOCUMENT =================
+
 export const deleteDocument = async (
     documentId: string,
     userId: string
 ) => {
 
-    // Only owner can delete
     const document = await Document.findOne({
         _id: documentId,
         owner: userId,

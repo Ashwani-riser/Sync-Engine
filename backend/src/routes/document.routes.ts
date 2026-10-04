@@ -4,6 +4,8 @@ import {
     getAll,
     getById,
     addCollaboratorToDocument,
+    updateCollaborator,
+    removeCollaboratorFromDocument,
     update,
     remove,
     getHistory,
@@ -41,6 +43,27 @@ router.delete(
     "/:documentId",
     authenticate,
     remove
+);
+
+// Add collaborator
+router.post(
+    "/:documentId/collaborators",
+    authenticate,
+    addCollaboratorToDocument
+);
+
+// Change collaborator role
+router.patch(
+    "/:documentId/collaborators/:collaboratorId",
+    authenticate,
+    updateCollaborator
+);
+
+// Remove collaborator
+router.delete(
+    "/:documentId/collaborators/:collaboratorId",
+    authenticate,
+    removeCollaboratorFromDocument
 );
 
 export default router;

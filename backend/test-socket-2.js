@@ -77,7 +77,7 @@ async function start() {
         console.log("🍪 Client B received cookie");
 
 
-        const socket = io("http://localhost:8000", {
+        const socket = io(process.env.NEXT_PUBLIC_API_URL, {
             extraHeaders: {
                 Cookie: cookie,
             },

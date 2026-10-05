@@ -144,7 +144,7 @@ const [history, setHistory] =
     const loadDocument = async () => {
         try {
             const response = await fetch(
-                `http://localhost:8000/api/documents/${documentId}`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,
                 {
                     credentials: "include",
                 }
@@ -191,7 +191,7 @@ const [history, setHistory] =
         if (!documentId) return;
 
         const socket = io(
-            "http://localhost:8000",
+            process.env.NEXT_PUBLIC_API_URL,
             {
                 withCredentials: true,
             }
@@ -565,7 +565,7 @@ socket.on(
         try {
             const response =
                 await fetch(
-                    `http://localhost:8000/api/documents/${documentId}`,
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,
                     {
                         method: "PATCH",
 
@@ -675,7 +675,7 @@ socket.on(
         try {
             const response =
                 await fetch(
-                    "http://localhost:8000/api/ai/assist",
+                     `${process.env.NEXT_PUBLIC_API_URL}/api/ai/assist`,
                     {
                         method: "POST",
 
@@ -758,7 +758,7 @@ socket.on(
         try {
             const response =
                 await fetch(
-                    `http://localhost:8000/api/documents/${documentId}`,
+                     `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,
                     {
                         method: "DELETE",
                         credentials: "include",
@@ -800,7 +800,7 @@ const handleHistory = async () => {
 
     try {
         const response = await fetch(
-            `http://localhost:8000/api/documents/${documentId}/history`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,
             {
                 credentials: "include",
             }
@@ -855,7 +855,7 @@ const handleHistory = async () => {
         try {
             const response =
                 await fetch(
-                    `http://localhost:8000/api/documents/${documentId}/collaborators`,
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}/collaborators`,
                     {
                         method: "POST",
 
@@ -931,7 +931,7 @@ const handleHistory = async () => {
         try {
             const response =
                 await fetch(
-                    `http://localhost:8000/api/documents/${documentId}/collaborators/${collaboratorId}`,
+                  `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,
                     {
                         method: "PATCH",
 
@@ -1005,7 +1005,7 @@ const handleHistory = async () => {
             try {
                 const response =
                     await fetch(
-                        `http://localhost:8000/api/documents/${documentId}/collaborators/${collaboratorId}`,
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,   
                         {
                             method: "DELETE",
                             credentials: "include",

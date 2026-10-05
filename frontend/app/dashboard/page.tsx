@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const loadDashboard = async () => {
     try {
       const userResponse = await fetch(
-        "http://localhost:8000/api/auth/me",
+        "/api/auth/me",
         {
           credentials: "include",
         }
@@ -55,7 +55,7 @@ export default function DashboardPage() {
       setUser(userData.user);
 
       const documentsResponse = await fetch(
-        "http://localhost:8000/api/documents",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/documents`,
         {
           credentials: "include",
         }
@@ -114,7 +114,7 @@ export default function DashboardPage() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/api/documents",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/documents`,
         {
           method: "POST",
           headers: {

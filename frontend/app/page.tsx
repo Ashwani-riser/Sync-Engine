@@ -19,7 +19,7 @@ export default function Home() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/api/auth/login",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
         {
           method: "POST",
           headers: {
@@ -58,7 +58,7 @@ export default function Home() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/api/auth/google",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`,
         {
           method: "POST",
           headers: {

@@ -2,15 +2,15 @@
 
 import { useEffect, useRef } from "react";
 
-declare global {
-  interface Window {
-    google: any;
-  }
-}
-
 interface GoogleSignInButtonProps {
   onSuccess: (credential: string) => void;
-  onError?: () => void;
+  onError: () => void;
+}
+
+declare global {
+  interface Window {
+    google?: any;
+  }
 }
 
 export default function GoogleSignInButton({
@@ -23,31 +23,28 @@ export default function GoogleSignInButton({
     const initializeGoogle = () => {
       if (!window.google || !buttonRef.current) return;
 
+      buttonRef.current.innerHTML = "";
+
       window.google.accounts.id.initialize({
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-
         callback: (response: any) => {
           if (response?.credential) {
             onSuccess(response.credential);
           } else {
-            onError?.();
+            onError();
           }
         },
-
-        auto_select: false,
-        cancel_on_tap_outside: true,
       });
-
-      buttonRef.current.innerHTML = "";
 
       window.google.accounts.id.renderButton(
         buttonRef.current,
         {
+          type: "standard",
           theme: "outline",
           size: "large",
-          width: 360,
           text: "continue_with",
           shape: "rectangular",
+          width: 300,
         }
       );
     };
@@ -58,7 +55,6 @@ export default function GoogleSignInButton({
     }
 
     const script = document.createElement("script");
-
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
     script.defer = true;
@@ -68,14 +64,18 @@ export default function GoogleSignInButton({
     document.head.appendChild(script);
 
     return () => {
-      script.remove();
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
     };
   }, [onSuccess, onError]);
 
   return (
-    <div
-      ref={buttonRef}
-      className="flex min-h-[44px] w-full justify-center"
-    />
+    <div className="flex w-full justify-center px-2 sm:px-0">
+      <div
+        ref={buttonRef}
+        className="w-full max-w-[300px] overflow-hidden"
+      />
+    </div>
   );
 }

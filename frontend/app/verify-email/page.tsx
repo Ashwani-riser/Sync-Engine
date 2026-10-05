@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
-
   const token = searchParams.get("token");
 
   const verificationStarted = useRef(false);
@@ -16,9 +15,7 @@ export default function VerifyEmailPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (verificationStarted.current) {
-      return;
-    }
+    if (verificationStarted.current) return;
 
     verificationStarted.current = true;
 
@@ -41,29 +38,21 @@ export default function VerifyEmailPage() {
         }
 
         const response = await fetch(
-          `${apiUrl}/api/auth/verify-email?token=${encodeURIComponent(
-            token
-          )}`
+          `${apiUrl}/api/auth/verify-email?token=${encodeURIComponent(token)}`
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-          setMessage(
-            data.message || "Email verification failed."
-          );
+          setMessage(data.message || "Email verification failed.");
           setSuccess(false);
           return;
         }
 
-        setMessage(
-          data.message || "Email verified successfully!"
-        );
-
+        setMessage(data.message || "Email verified successfully!");
         setSuccess(true);
       } catch (error) {
         console.error("Email verification error:", error);
-
         setMessage("Unable to connect to server.");
         setSuccess(false);
       } finally {
@@ -79,7 +68,6 @@ export default function VerifyEmailPage() {
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-slate-700 bg-slate-900/90 p-8 text-center shadow-2xl">
 
-          {/* Logo */}
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600">
             <span className="text-2xl font-bold text-white">
               C
@@ -90,7 +78,6 @@ export default function VerifyEmailPage() {
             CollabFlow
           </h1>
 
-          {/* Loading */}
           {loading && (
             <>
               <p className="mt-6 text-slate-400">
@@ -101,7 +88,6 @@ export default function VerifyEmailPage() {
             </>
           )}
 
-          {/* Success */}
           {!loading && success && (
             <>
               <h2 className="mt-6 text-xl font-semibold text-green-400">
@@ -121,7 +107,6 @@ export default function VerifyEmailPage() {
             </>
           )}
 
-          {/* Failed */}
           {!loading && !success && (
             <>
               <h2 className="mt-6 text-xl font-semibold text-red-400">
@@ -140,8 +125,43 @@ export default function VerifyEmailPage() {
               </Link>
             </>
           )}
+
         </div>
       </div>
     </main>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl border border-slate-700 bg-slate-900/90 p-8 text-center shadow-2xl">
+
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600">
+            <span className="text-2xl font-bold text-white">
+              C
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-bold text-white">
+            CollabFlow
+          </h1>
+
+          <p className="mt-6 text-slate-400">
+            Loading...
+          </p>
+
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

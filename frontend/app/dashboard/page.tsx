@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const loadDashboard = async () => {
     try {
       const userResponse = await fetch(
-        "/api/auth/me",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
         {
           credentials: "include",
         }

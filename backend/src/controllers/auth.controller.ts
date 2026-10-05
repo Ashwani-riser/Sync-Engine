@@ -194,6 +194,10 @@ export const googleLogin = async (
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
+        console.log("NODE_ENV:", process.env.NODE_ENV);
+       console.log("CLIENT_URL:", process.env.CLIENT_URL);
+       console.log("Google JWT created:", !!result.token);
+
         res.status(200).json({
             success: true,
             message: "Google login successful",

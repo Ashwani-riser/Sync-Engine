@@ -18,13 +18,21 @@ export default function RegisterPage() {
     setMessage("");
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+      if (!apiUrl) {
+        setMessage("API URL is not configured");
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`,
+        `${apiUrl}/api/auth/register`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             name,
             email,
@@ -40,14 +48,15 @@ export default function RegisterPage() {
         return;
       }
 
-      setMessage("Account created successfully!");
+      setMessage(
+        "Registration successful! Please check your email to verify your account."
+      );
 
       setName("");
       setEmail("");
       setPassword("");
-
     } catch (error) {
-      console.error(error);
+      console.error("Registration error:", error);
       setMessage("Unable to connect to server");
     } finally {
       setLoading(false);
@@ -56,12 +65,10 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center px-4">
-
       <div className="w-full max-w-md">
 
         {/* Logo */}
         <div className="mb-8 text-center">
-
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-600/30">
             <span className="text-2xl font-bold text-white">
               C
@@ -75,7 +82,6 @@ export default function RegisterPage() {
           <p className="mt-2 text-sm text-slate-400">
             Real-time collaborative workspace
           </p>
-
         </div>
 
         {/* Register Card */}
@@ -96,7 +102,6 @@ export default function RegisterPage() {
 
             {/* Name */}
             <div>
-
               <label className="mb-2 block text-sm font-medium text-slate-300">
                 Name
               </label>
@@ -104,19 +109,15 @@ export default function RegisterPage() {
               <input
                 type="text"
                 value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
                 required
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
-
             </div>
 
             {/* Email */}
             <div>
-
               <label className="mb-2 block text-sm font-medium text-slate-300">
                 Email
               </label>
@@ -124,19 +125,15 @@ export default function RegisterPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
-
             </div>
 
             {/* Password */}
             <div>
-
               <label className="mb-2 block text-sm font-medium text-slate-300">
                 Password
               </label>
@@ -144,15 +141,12 @@ export default function RegisterPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 6 characters"
                 minLength={6}
                 required
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
-
             </div>
 
             {/* Register Button */}
@@ -195,7 +189,6 @@ export default function RegisterPage() {
         </p>
 
       </div>
-
     </main>
   );
 }

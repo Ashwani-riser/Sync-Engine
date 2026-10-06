@@ -887,7 +887,7 @@ const handleHistory = async () => {
 
     try {
         const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}/history`,
             {
                 credentials: "include",
             }

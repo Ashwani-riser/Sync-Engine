@@ -1008,64 +1008,57 @@ const handleHistory = async () => {
     // ========================================
 
     const handleRoleChange = async (
-        collaboratorId: string,
-        newRole: "editor" | "viewer"
-    ) => {
-        setRoleUpdatingId(
-            collaboratorId
+    collaboratorId: string,
+    newRole: "editor" | "viewer"
+) => {
+    setRoleUpdatingId(collaboratorId);
+
+    try {
+        const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}/collaborators/${collaboratorId}`,
+            {
+                method: "PATCH",
+
+                headers: {
+                    "Content-Type": "application/json",
+                },
+
+                credentials: "include",
+
+                body: JSON.stringify({
+                    role: newRole,
+                }),
+            }
         );
 
-        try {
-            const response =
-                await fetch(
-                  `${process.env.NEXT_PUBLIC_API_URL}/api/documents/${documentId}`,
-                    {
-                        method: "PATCH",
+        const data = await response.json();
 
-                        headers: {
-                            "Content-Type":
-                                "application/json",
-                        },
-
-                        credentials: "include",
-
-                        body: JSON.stringify({
-                            role: newRole,
-                        }),
-                    }
-                );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-                setMessage(
-                    data.message ||
-                    "Failed to update role"
-                );
-
-                return;
-            }
-
-            setDocument(
-                data.document
-            );
-
+        if (!response.ok) {
             setMessage(
-                "Collaborator role updated"
+                data.message ||
+                "Failed to update role"
             );
 
-        } catch (error) {
-            console.error(error);
-
-            setMessage(
-                "Unable to update collaborator role"
-            );
-
-        } finally {
-            setRoleUpdatingId(null);
+            return;
         }
-    };
+
+        setDocument(data.document);
+
+        setMessage(
+            "Collaborator role updated"
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        setMessage(
+            "Unable to update collaborator role"
+        );
+
+    } finally {
+        setRoleUpdatingId(null);
+    }
+};
 
 
     // ========================================

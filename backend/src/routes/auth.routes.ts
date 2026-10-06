@@ -6,6 +6,7 @@ import {
     getMe,
     googleLogin,
      verifyEmail,
+     getSocketToken,
 } from "../controllers/auth.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -16,6 +17,11 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/google", googleLogin);
 router.get("/verify-email", verifyEmail);
+router.get(
+    "/socket-token",
+    authenticate,
+    getSocketToken
+);
 // Protected route
 router.get("/me", authenticate, getMe);
 

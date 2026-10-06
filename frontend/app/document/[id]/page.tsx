@@ -187,282 +187,369 @@ const [history, setHistory] =
     // SOCKET CONNECTION
     // ========================================
 
-    useEffect(() => {
-        if (!documentId) return;
+ useEffect(() => {
+    if (!documentId) return;
 
-        const socket = io(
-            process.env.NEXT_PUBLIC_SOCKET_URL!,
-            {
-                withCredentials: true,
-            }
-        );
+    let socket: Socket | null = null;
+    let cancelled = false;
 
-        socketRef.current = socket;
+    const setupSocket = async () => {
+        try {
+            // ========================================
+            // GET SOCKET TOKEN
+            // ========================================
 
+            const tokenResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/auth/socket-token`,
+                {
+                    credentials: "include",
+                }
+            );
 
-        // CONNECT
+            const tokenData = await tokenResponse.json();
 
-        socket.on("connect", () => {
             console.log(
-                "🔌 Connected:",
-                socket.id
+                "🔑 Socket token response:",
+                tokenData.success
             );
 
-            socket.emit(
-                "join-document",
-                documentId
-            );
-        });
-
-
-        // JOINED
-
-        socket.on(
-            "document-joined",
-            (data) => {
-                console.log(
-                    "📄 Document joined:",
-                    data
+            if (
+                !tokenResponse.ok ||
+                !tokenData.success ||
+                !tokenData.token
+            ) {
+                console.error(
+                    "❌ Failed to get socket token:",
+                    tokenData
                 );
-
-                if (data.role) {
-                    setRole(data.role);
-                }
 
                 setMessage(
-                    `Connected as ${data.role}`
+                    "Unable to authenticate real-time connection"
                 );
+
+                return;
             }
-        );
-        // ========================================
-// COLLABORATOR ROLE CHANGED
-// ========================================
 
-socket.on(
-    "collaborator-role-changed",
-    (data) => {
+            if (cancelled) return;
 
-        console.log(
-            "🔄 Role changed:",
-            data
-        );
+            // ========================================
+            // SOCKET CONNECTION
+            // ========================================
 
-        if (
-            data.documentId !== documentId
-        ) {
-            return;
-        }
-
-        setRole(
-            data.role
-        );
-
-        setMessage(
-            `Your role changed to ${data.role}`
-        );
-    }
-);
-
-
-// ========================================
-// COLLABORATOR REMOVED
-// ========================================
-
-socket.on(
-    "collaborator-removed",
-    (data) => {
-
-        console.log(
-            "🚫 Removed from document:",
-            data
-        );
-
-        if (
-            data.documentId !== documentId
-        ) {
-            return;
-        }
-
-        setMessage(
-            "You no longer have access to this document"
-        );
-
-        setTimeout(() => {
-
-            router.push(
-                "/dashboard"
+            socket = io(
+                process.env.NEXT_PUBLIC_SOCKET_URL!,
+                {
+                    auth: {
+                        token: tokenData.token,
+                    },
+                    transports: [
+                        "websocket",
+                        "polling",
+                    ],
+                }
             );
 
-        }, 1200);
-    }
-);
+            socketRef.current = socket;
 
 
-        // LIVE TYPING
+            // ========================================
+            // CONNECT
+            // ========================================
 
-        socket.on(
-            "document-typing",
-            (data) => {
+            socket.on("connect", () => {
                 console.log(
-                    "⚡ Live update:",
-                    data
+                    "🔌 Connected:",
+                    socket?.id
                 );
 
-                setTitle(data.title);
-                setContent(data.content);
+                socket?.emit(
+                    "join-document",
+                    documentId
+                );
+            });
 
-                setDirty(true);
 
-                if (data.updatedByName) {
+            // ========================================
+            // JOINED
+            // ========================================
+
+            socket.on(
+                "document-joined",
+                (data) => {
+                    console.log(
+                        "📄 Document joined:",
+                        data
+                    );
+
+                    if (data.role) {
+                        setRole(data.role);
+                    }
+
                     setMessage(
-                        `${data.updatedByName} is editing...`
+                        `Connected as ${data.role}`
                     );
                 }
-            }
-        );
+            );
 
 
-        // SAVED DOCUMENT UPDATE
+            // ========================================
+            // COLLABORATOR ROLE CHANGED
+            // ========================================
 
-        socket.on(
-            "document-updated",
-            (data) => {
-                console.log(
-                    "🔥 Saved update:",
-                    data
-                );
-
-                setTitle(data.title);
-                setContent(data.content);
-                setVersion(data.version);
-
-                setDirty(false);
-
-                setMessage(
-                    "Document saved"
-                );
-            }
-        );
-
-
-        // PRESENCE
-
-        socket.on(
-            "presence-updated",
-            (data: PresenceData) => {
-                console.log(
-                    "👥 Presence:",
-                    data
-                );
-
-                setOnlineUsers(
-                    data.users || []
-                );
-            }
-        );
-
-
-        // VERSION CONFLICT
-
-        socket.on(
-            "version-conflict",
-            (data) => {
-                console.log(
-                    "⚠️ Version conflict:",
-                    data
-                );
-
-                setMessage(
-                    "Document was modified by another user. Latest version loaded."
-                );
-
-                if (data.document) {
-                    setTitle(
-                        data.document.title
+            socket.on(
+                "collaborator-role-changed",
+                (data) => {
+                    console.log(
+                        "🔄 Role changed:",
+                        data
                     );
 
-                    setContent(
-                        data.document.content
+                    if (
+                        data.documentId !== documentId
+                    ) {
+                        return;
+                    }
+
+                    setRole(data.role);
+
+                    setMessage(
+                        `Your role changed to ${data.role}`
+                    );
+                }
+            );
+
+
+            // ========================================
+            // COLLABORATOR REMOVED
+            // ========================================
+
+            socket.on(
+                "collaborator-removed",
+                (data) => {
+                    console.log(
+                        "🚫 Removed from document:",
+                        data
                     );
 
-                    setVersion(
-                        data.document.version
+                    if (
+                        data.documentId !== documentId
+                    ) {
+                        return;
+                    }
+
+                    setMessage(
+                        "You no longer have access to this document"
                     );
+
+                    setTimeout(() => {
+                        router.push("/dashboard");
+                    }, 1200);
+                }
+            );
+
+
+            // ========================================
+            // LIVE TYPING
+            // ========================================
+
+            socket.on(
+                "document-typing",
+                (data) => {
+                    console.log(
+                        "⚡ Live update:",
+                        data
+                    );
+
+                    setTitle(data.title);
+                    setContent(data.content);
+
+                    setDirty(true);
+
+                    if (data.updatedByName) {
+                        setMessage(
+                            `${data.updatedByName} is editing...`
+                        );
+                    }
+                }
+            );
+
+
+            // ========================================
+            // SAVED DOCUMENT UPDATE
+            // ========================================
+
+            socket.on(
+                "document-updated",
+                (data) => {
+                    console.log(
+                        "🔥 Saved update:",
+                        data
+                    );
+
+                    setTitle(data.title);
+                    setContent(data.content);
+                    setVersion(data.version);
 
                     setDirty(false);
+
+                    setMessage(
+                        "Document saved"
+                    );
                 }
-            }
-        );
-
-
-        // SOCKET ERROR
-
-        socket.on(
-            "socket-error",
-            (data) => {
-                console.error(
-                    "Socket error:",
-                    data
-                );
-
-                setMessage(
-                    data.message ||
-                    "Socket error"
-                );
-            }
-        );
-
-
-        // CONNECTION ERROR
-
-        socket.on(
-            "connect_error",
-            (error) => {
-                console.error(
-                    "Socket connection error:",
-                    error
-                );
-
-                setMessage(
-                    "Unable to connect to real-time server"
-                );
-            }
-        );
-
-
-        // DISCONNECT
-
-        socket.on(
-            "disconnect",
-            () => {
-                console.log(
-                    "🔴 Socket disconnected"
-                );
-
-                setMessage(
-                    "Real-time connection disconnected"
-                );
-            }
-        );
-
-
-        return () => {
-            console.log(
-                "Cleaning up socket"
             );
 
-            if (typingTimeoutRef.current) {
-                clearTimeout(
-                    typingTimeoutRef.current
-                );
-            }
 
+            // ========================================
+            // PRESENCE
+            // ========================================
+
+            socket.on(
+                "presence-updated",
+                (data: PresenceData) => {
+                    console.log(
+                        "👥 Presence:",
+                        data
+                    );
+
+                    setOnlineUsers(
+                        data.users || []
+                    );
+                }
+            );
+
+
+            // ========================================
+            // VERSION CONFLICT
+            // ========================================
+
+            socket.on(
+                "version-conflict",
+                (data) => {
+                    console.log(
+                        "⚠️ Version conflict:",
+                        data
+                    );
+
+                    setMessage(
+                        "Document was modified by another user. Latest version loaded."
+                    );
+
+                    if (data.document) {
+                        setTitle(
+                            data.document.title
+                        );
+
+                        setContent(
+                            data.document.content
+                        );
+
+                        setVersion(
+                            data.document.version
+                        );
+
+                        setDirty(false);
+                    }
+                }
+            );
+
+
+            // ========================================
+            // SOCKET ERROR
+            // ========================================
+
+            socket.on(
+                "socket-error",
+                (data) => {
+                    console.error(
+                        "Socket error:",
+                        data
+                    );
+
+                    setMessage(
+                        data.message ||
+                        "Socket error"
+                    );
+                }
+            );
+
+
+            // ========================================
+            // CONNECTION ERROR
+            // ========================================
+
+            socket.on(
+                "connect_error",
+                (error) => {
+                    console.error(
+                        "❌ Socket connection error:",
+                        error.message
+                    );
+
+                    setMessage(
+                        "Unable to connect to real-time server"
+                    );
+                }
+            );
+
+
+            // ========================================
+            // DISCONNECT
+            // ========================================
+
+            socket.on(
+                "disconnect",
+                (reason) => {
+                    console.log(
+                        "🔴 Socket disconnected:",
+                        reason
+                    );
+
+                    setMessage(
+                        "Real-time connection disconnected"
+                    );
+                }
+            );
+
+        } catch (error) {
+            console.error(
+                "❌ Socket setup failed:",
+                error
+            );
+
+            setMessage(
+                "Unable to connect to real-time server"
+            );
+        }
+    };
+
+    setupSocket();
+
+
+    // ========================================
+    // CLEANUP
+    // ========================================
+
+    return () => {
+        console.log(
+            "🧹 Cleaning up socket"
+        );
+
+        cancelled = true;
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(
+                typingTimeoutRef.current
+            );
+        }
+
+        if (socket) {
             socket.disconnect();
+        }
 
-            socketRef.current = null;
-        };
+        socketRef.current = null;
+    };
 
-    }, [documentId]);
+}, [documentId]);
 
 
     // ========================================

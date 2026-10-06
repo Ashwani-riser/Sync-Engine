@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-
+import jwt from "jsonwebtoken";
 import {
     loginUser,
     getUserById,
@@ -252,6 +252,50 @@ export const verifyEmail = async (
             success: false,
             message:
                 error.message || "Email verification failed",
+        });
+    }
+};
+
+// ================= SOCKET TOKEN =================
+
+export const getSocketToken = (
+    req: AuthRequest,
+    res: Response
+): void => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+            return;
+        }
+
+        const token = jwt.sign(
+            {
+                userId: req.user.userId,
+                email: req.user.email,
+            },
+            process.env.JWT_SECRET as string,
+            {
+                expiresIn: "60s",
+            }
+        );
+
+        res.status(200).json({
+            success: true,
+            token,
+        });
+
+    } catch (error) {
+        console.error(
+            "Socket token error:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to create socket token",
         });
     }
 };

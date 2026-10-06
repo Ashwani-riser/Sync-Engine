@@ -191,7 +191,7 @@ const [history, setHistory] =
         if (!documentId) return;
 
         const socket = io(
-            process.env.NEXT_PUBLIC_API_URL,
+            process.env.NEXT_PUBLIC_SOCKET_URL!,
             {
                 withCredentials: true,
             }
